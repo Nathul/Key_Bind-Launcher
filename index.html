@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>KeyBind Launcher — Own Your Keyboard</title>
+<meta name="description" content="The premium cross-platform shortcut launcher. Assign apps & websites to any key. Visual keyboard UI, RGB themes, global shortcuts."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+/* ============================================================
+   KEYBIND LAUNCHER — Landing Page
+   Aesthetic: Luxury Gaming Terminal · Void Black · Neon Cyan
+============================================================ */
+
+:root {
+  --void:      #03030a;
+  --deep:      #06060f;
+  --panel:     #0a0a18;
+  --surface:   #0f0f22;
+  --raised:    #141430;
+
+  --cyan:      #00d4ff;
+  --cyan-dim:  #0099cc;
+  --cyan-glow: rgba(0,212,255,0.3);
+  --cyan-sub:  rgba(0,212,255,0.08);
+
+  --violet:    #7c3aed;
+  --violet-b:  #a78bfa;
+  --violet-glow: rgba(124,58,237,0.35);
+
+  --pink:      #f472b6;
+  --green:     #10b981;
+  --amber:     #f59e0b;
+
+  --text-1:    #f0f2ff;
+  --text-2:    #8892b8;
+  --text-3:    #4a5278;
+  --text-4:    #252840;
+
+  --border-1:  rgba(0,212,255,0.08);
+  --border-2:  rgba(0,212,255,0.18);
+  --border-3:  rgba(0,212,255,0.38);
+
+  --f-display: 'Orbitron', monospace;
+  --f-body:    'Outfit', sans-serif;
+  --f-mono:    'DM Mono', monospace;
+
+  --ease-out:  cubic-bezier(0.16,1,0.3,1);
+  --ease-in:   cubic-bezier(0.7,0,0.84,0);
+  --bounce:    cubic-bezier(0.34,1.56,0.64,1);
+}
+
+/* ── Reset ─────────────────────────────────────────────────── */
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { scroll-behavior:smooth; font-size:16px; }
+body {
+  background: var(--void);
+  color: var(--text-1);
+  font-family: var(--f-body);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--cyan-sub); color: var(--cyan); }
+::-webkit-scrollbar { width:5px; }
+::-webkit-scrollbar-track { background: var(--deep); }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius:3px; }
+
+/* ── Global Backgrounds ─────────────────────────────────────── */
+.noise-overlay {
+  position: fixed; inset:0; pointer-events:none; z-index:0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity: 0.5;
+}
+
+/* Grid lines */
+.grid-bg {
+  position: fixed; inset:0; pointer-events:none; z-index:0;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* Scan lines */
+.scan-bg {
+  position: fixed; inset:0; pointer-events:none; z-index:0;
+  background: repeating-linear-gradient(
+    0deg, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px,
+    rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 3px
+  );
+}
+
+/* Canvas for particles */
+#particle-canvas {
+  position: fixed; inset:0; pointer-events:none; z-index:0;
+  opacity: 0.6;
+}
+
+/* ── Typography ─────────────────────────────────────────────── */
+.t-display {
+  font-family: var(--f-display);
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+}
+.t-mono { font-family: var(--f-mono); }
+.t-cyan { color: var(--cyan); }
+.t-violet { color: var(--violet-b); }
+.t-muted { color: var(--text-2); }
+
+/* ── Navbar ─────────────────────────────────────────────────── */
+nav {
+  position: fixed; top:0; left:0; right:0; z-index:100;
+  display: flex; align-items:center; justify-content:space-between;
+  padding: 0 48px;
+  height: 68px;
+  background: rgba(3,3,10,0.8);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-1);
+  transition: all 0.3s ease;
+}
+nav.scrolled {
+  height: 58px;
+  border-bottom-color: var(--border-2);
+  box-shadow: 0 0 40px rgba(0,0,0,0.5);
+}
+
+.nav-brand {
+  display: flex; align-items:center; gap:12px;
+  text-decoration: none;
+}
+.nav-logo {
+  width:36px; height:36px; border-radius:8px;
+  background: var(--cyan-sub);
+  border: 1px solid var(--border-2);
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px;
+  box-shadow: 0 0 16px var(--cyan-glow);
+  animation: logo-pulse 4s ease-in-out infinite;
+}
+@keyframes logo-pulse {
+  0%,100% { box-shadow:0 0 12px var(--cyan-glow); }
+  50%      { box-shadow:0 0 28px var(--cyan-glow), 0 0 60px rgba(0,212,255,0.1); }
+}
+.nav-name {
+  font-family: var(--f-display);
+  font-size:13px; font-weight:700;
+  letter-spacing:0.12em;
+  color: var(--cyan);
+  text-transform:uppercase;
+}
+
+.nav-links {
+  display:flex; align-items:center; gap:4px;
+  list-style:none;
+}
+.nav-links a {
+  display:block; padding:7px 16px;
+  color: var(--text-2); text-decoration:none;
+  font-size:13px; font-weight:500;
+  border-radius:7px; letter-spacing:0.02em;
+  transition:all 0.2s;
+}
+.nav-links a:hover { color:var(--text-1); background:var(--cyan-sub); }
+
+.nav-cta {
+  display:flex; align-items:center; gap:8px;
+  padding:9px 22px;
+  background: var(--cyan);
+  color: var(--void) !important;
+  border-radius:8px; font-weight:700 !important;
+  font-size:13px !important;
+  box-shadow: 0 0 20px var(--cyan-glow);
+  transition:all 0.2s !important;
+}
+.nav-cta:hover {
+  background:#33ddff !important;
+  box-shadow:0 0 36px var(--cyan-glow), 0 4px 20px rgba(0,0,0,0.3) !important;
+  transform:translateY(-1px);
+}
+
+/* ── HERO ───────────────────────────────────────────────────── */
+.hero {
+  position:relative; z-index:1;
+  min-height:100vh;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  text-align:center;
+  padding: 120px 24px 80px;
+  overflow:hidden;
+}
+
+/* Hero ambient glow blobs */
+.hero-blob {
+  position:absolute; border-radius:50%;
+  filter:blur(100px); pointer-events:none;
+  animation: blob 20s ease-in-out infinite;
+}
+.hero-blob-1 {
+  width:700px; height:700px;
+  background: radial-gradient(circle, rgba(0,212,255,0.12) 0%, transparent 70%);
+  top:-200px; left:-150px; animation-delay:0s;
+}
+.hero-blob-2 {
+  width:600px; height:600px;
+  background: radial-gradient(circle, rgba(124,58,237,0.15) 0%, transparent 70%);
+  bottom:-100px; right:-100px; animation-delay:-8s;
+}
+.hero-blob-3 {
+  width:400px; height:400px;
+  background: radial-gradient(circle, rgba(244,114,182,0.08) 0%, transparent 70%);
+  top:40%; left:60%; animation-delay:-14s;
+}
+@keyframes blob {
+  0%,100% { transform:translate(0,0) scale(1); }
+  33%      { transform:translate(40px,-30px) scale(1.06); }
+  66%      { transform:translate(-25px,20px) scale(0.96); }
+}
+
+.hero-eyebrow {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:6px 16px;
+  background:var(--cyan-sub);
+  border:1px solid var(--border-2);
+  border-radius:100px;
+  font-family:var(--f-mono);
+  font-size:11px; letter-spacing:0.14em;
+  text-transform:uppercase; color:var(--cyan);
+  margin-bottom:28px;
+  animation: fade-up 0.8s var(--ease-out) both;
+}
+.eyebrow-dot {
+  width:6px; height:6px; border-radius:50%;
+  background:var(--cyan);
+  box-shadow:0 0 8px var(--cyan);
+  animation: dot-blink 2s ease-in-out infinite;
+}
+@keyframes dot-blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.hero-title {
+  font-family:var(--f-display);
+  font-size: clamp(42px, 7vw, 90px);
+  font-weight:900;
+  line-height:1.0;
+  letter-spacing:-0.02em;
+  margin-bottom:24px;
+  animation: fade-up 0.8s var(--ease-out) 0.1s both;
+}
+
+.hero-title .line-1 { display:block; color:var(--text-1); }
+.hero-title .line-2 {
+  display:block;
+  background: linear-gradient(135deg, var(--cyan) 0%, var(--violet-b) 50%, var(--pink) 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text;
+  animation: gradient-shift 6s ease-in-out infinite;
+  background-size: 200% 200%;
+}
+@keyframes gradient-shift {
+  0%,100% { background-position:0% 50%; }
+  50%      { background-position:100% 50%; }
+}
+
+.hero-sub {
+  max-width:560px; margin:0 auto 40px;
+  font-size:18px; line-height:1.7;
+  color:var(--text-2); font-weight:400;
+  animation: fade-up 0.8s var(--ease-out) 0.2s both;
+}
+
+.hero-actions {
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  justify-content:center; margin-bottom:80px;
+  animation: fade-up 0.8s var(--ease-out) 0.3s both;
+}
+
+.btn-primary {
+  display:inline-flex; align-items:center; gap:10px;
+  padding:15px 32px;
+  background:var(--cyan);
+  color:var(--void);
+  font-weight:700; font-size:15px;
+  border-radius:10px; text-decoration:none;
+  box-shadow:0 0 30px var(--cyan-glow), 0 4px 24px rgba(0,0,0,0.4);
+  transition:all 0.25s var(--ease-out);
+  border:none; cursor:pointer; font-family:var(--f-body);
+  letter-spacing:0.02em;
+}
+.btn-primary:hover {
+  background:#33ddff;
+  box-shadow:0 0 50px var(--cyan-glow), 0 0 100px rgba(0,212,255,0.15), 0 8px 32px rgba(0,0,0,0.4);
+  transform:translateY(-3px) scale(1.02);
+}
+.btn-primary:active { transform:translateY(-1px) scale(1); }
+
+.btn-secondary {
+  display:inline-flex; align-items:center; gap:10px;
+  padding:14px 28px;
+  background:transparent;
+  color:var(--text-1);
+  font-weight:600; font-size:15px;
+  border-radius:10px; text-decoration:none;
+  border:1px solid var(--border-2);
+  transition:all 0.2s;
+  letter-spacing:0.02em;
+}
+.btn-secondary:hover {
+  background:var(--cyan-sub);
+  border-color:var(--border-3);
+  transform:translateY(-2px);
+}
+
+.btn-icon { font-size:18px; }
+
+/* ── Virtual Keyboard Mockup ──────────────────────────────────── */
+.keyboard-mockup {
+  position:relative;
+  animation: fade-up 1s var(--ease-out) 0.4s both, float 6s ease-in-out 1.4s infinite;
+  max-width:860px; width:100%;
+  margin:0 auto;
+}
+
+@keyframes float {
+  0%,100% { transform:translateY(0px); }
+  50%      { transform:translateY(-12px); }
+}
+
+.keyboard-shell {
+  background: linear-gradient(160deg, #0e0e28 0%, #090918 100%);
+  border:1px solid var(--border-2);
+  border-radius:20px;
+  padding:24px 28px;
+  box-shadow:
+    0 40px 120px rgba(0,0,0,0.8),
+    0 0 0 1px rgba(0,212,255,0.05),
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 0 80px rgba(0,212,255,0.06);
+}
+
+.kb-row {
+  display:flex; gap:5px; margin-bottom:5px;
+}
+.kb-row:last-child { margin-bottom:0; }
+
+.key {
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+  height:42px; min-width:38px;
+  background: linear-gradient(160deg, #13132e 0%, #0d0d1e 100%);
+  border:1px solid rgba(0,212,255,0.18);
+  border-bottom:3px solid rgba(0,212,255,0.35);
+  border-radius:6px;
+  font-family:var(--f-mono);
+  font-size:10px; color:#5a6490;
+  flex:1;
+  cursor:default;
+  transition:all 0.15s;
+  box-shadow:0 3px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03);
+  overflow:hidden;
+}
+
+.key::before {
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:40%;
+  background:linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+  border-radius:6px 6px 0 0;
+}
+
+/* Assigned keys */
+.key.assigned {
+  color: var(--text-1);
+  animation: key-glow-pulse 3s ease-in-out infinite;
+}
+.key.cyan   { --kc:#00d4ff; border-color:rgba(0,212,255,0.5); border-bottom-color:var(--cyan); }
+.key.violet { --kc:#a78bfa; border-color:rgba(167,139,250,0.5); border-bottom-color:var(--violet-b); }
+.key.pink   { --kc:#f472b6; border-color:rgba(244,114,182,0.5); border-bottom-color:var(--pink); }
+.key.green  { --kc:#10b981; border-color:rgba(16,185,129,0.5); border-bottom-color:var(--green); }
+.key.amber  { --kc:#f59e0b; border-color:rgba(245,158,11,0.5); border-bottom-color:var(--amber); }
+
+.key.assigned::after {
+  content:'';
+  position:absolute; inset:0;
+  background:linear-gradient(160deg, color-mix(in srgb, var(--kc) 14%, transparent), color-mix(in srgb, var(--kc) 4%, transparent));
+  pointer-events:none; border-radius:5px;
+}
+
+.key-dot {
+  position:absolute; top:4px; right:4px;
+  width:5px; height:5px; border-radius:50%;
+  background:var(--kc);
+  box-shadow:0 0 8px var(--kc);
+  animation:key-glow-pulse 2s ease-in-out infinite;
+}
+
+@keyframes key-glow-pulse {
+  0%,100% { box-shadow:0 0 6px var(--kc); }
+  50%      { box-shadow:0 0 16px var(--kc), 0 0 32px color-mix(in srgb, var(--kc) 30%, transparent); }
+}
+
+/* Key sizes */
+.key.fn      { flex:0 0 36px; }
+.key.wide    { flex:0 0 72px; }
+.key.cap     { flex:0 0 64px; }
+.key.enter   { flex:0 0 80px; }
+.key.sleft   { flex:0 0 90px; }
+.key.sright  { flex:0 0 110px; }
+.key.space   { flex:0 0 260px; font-size:8px; letter-spacing:0.15em; }
+.key.bkey    { flex:0 0 54px; }
+
+/* Keyboard glow rim */
+.keyboard-rim {
+  position:absolute; inset:-1px;
+  border-radius:21px;
+  background:linear-gradient(135deg, var(--cyan-glow), var(--violet-glow), transparent, transparent);
+  opacity:0.4; pointer-events:none;
+  animation: rim-spin 8s linear infinite;
+}
+@keyframes rim-spin {
+  from { filter:hue-rotate(0deg); }
+  to   { filter:hue-rotate(360deg); }
+}
+
+/* Floating labels */
+.key-label {
+  position:absolute;
+  background:var(--panel);
+  border:1px solid var(--border-2);
+  border-radius:8px;
+  padding:6px 10px;
+  font-size:11px; font-weight:600;
+  color:var(--text-1);
+  white-space:nowrap;
+  pointer-events:none;
+  animation: label-float 4s ease-in-out infinite;
+  box-shadow:0 4px 20px rgba(0,0,0,0.5);
+}
+.key-label::before {
+  content:'';
+  position:absolute;
+  width:2px; background:currentColor;
+  opacity:0.5;
+}
+.key-label.top    { bottom:calc(100% + 8px); }
+.key-label.bottom { top:calc(100% + 8px); }
+.key-label.label-1 { right:-10px; top:-70px; color:var(--cyan); animation-delay:0s; }
+.key-label.label-2 { left:-80px; top:-50px; color:var(--violet-b); animation-delay:-2s; }
+.key-label.label-3 { right:-20px; bottom:-60px; color:var(--pink); animation-delay:-4s; }
+
+@keyframes label-float {
+  0%,100% { transform:translateY(0); }
+  50%      { transform:translateY(-6px); }
+}
+
+/* ── STATS BAR ──────────────────────────────────────────────── */
+.stats-bar {
+  position:relative; z-index:1;
+  display:flex; align-items:stretch; justify-content:center;
+  border-top:1px solid var(--border-1);
+  border-bottom:1px solid var(--border-1);
+  background:var(--deep);
+  overflow:hidden;
+}
+
+.stat-item {
+  flex:1; max-width:220px;
+  display:flex; flex-direction:column; align-items:center;
+  padding:36px 24px;
+  border-right:1px solid var(--border-1);
+  transition:all 0.3s;
+  position:relative; overflow:hidden;
+}
+.stat-item:last-child { border-right:none; }
+.stat-item:hover { background:var(--panel); }
+
+.stat-item::after {
+  content:'';
+  position:absolute; bottom:0; left:50%; transform:translateX(-50%);
+  width:0; height:2px;
+  background:var(--cyan);
+  transition:width 0.4s var(--ease-out);
+}
+.stat-item:hover::after { width:80%; }
+
+.stat-num {
+  font-family:var(--f-display);
+  font-size:42px; font-weight:900;
+  line-height:1;
+  background:linear-gradient(135deg, var(--cyan), var(--violet-b));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text;
+  margin-bottom:6px;
+}
+.stat-label {
+  font-size:12px; font-weight:600;
+  color:var(--text-3);
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+  font-family:var(--f-mono);
+}
+
+/* ── SECTION WRAPPER ────────────────────────────────────────── */
+section { position:relative; z-index:1; }
+
+.section-inner {
+  max-width:1200px;
+  margin:0 auto;
+  padding:0 48px;
+}
+
+.section-head {
+  text-align:center;
+  margin-bottom:72px;
+}
+
+.section-eyebrow {
+  display:inline-block;
+  font-family:var(--f-mono);
+  font-size:11px; letter-spacing:0.18em;
+  text-transform:uppercase; color:var(--cyan);
+  margin-bottom:16px;
+}
+
+.section-title {
+  font-family:var(--f-display);
+  font-size:clamp(28px,4vw,50px);
+  font-weight:800; line-height:1.1;
+  color:var(--text-1);
+  margin-bottom:16px;
+}
+
+.section-sub {
+  font-size:17px; line-height:1.7;
+  color:var(--text-2);
+  max-width:520px; margin:0 auto;
+}
+
+/* ── FEATURES ───────────────────────────────────────────────── */
+.features {
+  padding:120px 0;
+  background: linear-gradient(180deg, var(--void) 0%, var(--deep) 50%, var(--void) 100%);
+}
+
+.features-grid {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:16px;
+}
+
+.feature-card {
+  background:var(--panel);
+  border:1px solid var(--border-1);
+  border-radius:16px;
+  padding:32px 28px;
+  transition:all 0.35s var(--ease-out);
+  position:relative; overflow:hidden;
+  cursor:default;
+}
+
+.feature-card::before {
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg, transparent, var(--fc, var(--cyan)), transparent);
+  opacity:0;
+  transition:opacity 0.3s;
+}
+
+.feature-card:hover {
+  border-color:var(--border-2);
+  transform:translateY(-6px);
+  box-shadow:0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,212,255,0.1);
+}
+.feature-card:hover::before { opacity:1; }
+
+/* Large card spans 2 cols */
+.feature-card.wide { grid-column:span 2; }
+.feature-card.tall { grid-row:span 2; }
+
+.feature-icon {
+  width:50px; height:50px;
+  border-radius:12px;
+  background:var(--cyan-sub);
+  border:1px solid var(--border-2);
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px; margin-bottom:20px;
+  box-shadow:0 0 20px var(--fc-glow, var(--cyan-glow));
+  transition:all 0.3s;
+}
+.feature-card:hover .feature-icon {
+  box-shadow:0 0 30px var(--fc-glow, var(--cyan-glow));
+  transform:scale(1.08) rotate(-3deg);
+}
+
+.feature-title {
+  font-size:17px; font-weight:700;
+  color:var(--text-1); margin-bottom:10px;
+  letter-spacing:0.01em;
+}
+
+.feature-desc {
+  font-size:14px; line-height:1.7;
+  color:var(--text-2);
+}
+
+.feature-tags {
+  display:flex; flex-wrap:wrap; gap:6px; margin-top:16px;
+}
+.tag {
+  padding:3px 10px;
+  background:var(--raised);
+  border:1px solid var(--border-1);
+  border-radius:100px;
+  font-family:var(--f-mono);
+  font-size:10px; color:var(--text-3);
+  letter-spacing:0.05em;
+}
+
+/* ── THEMES SECTION ─────────────────────────────────────────── */
+.themes-section {
+  padding:120px 0;
+}
+
+.themes-showcase {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:14px;
+}
+
+.theme-card {
+  border-radius:16px;
+  overflow:hidden;
+  border:1px solid var(--border-1);
+  cursor:pointer;
+  transition:all 0.35s var(--ease-out);
+  position:relative;
+}
+
+.theme-card:hover {
+  transform:translateY(-8px) scale(1.02);
+  box-shadow:0 30px 80px rgba(0,0,0,0.6);
+  border-color:var(--border-3);
+  z-index:2;
+}
+
+.theme-preview-large {
+  height:200px;
+  position:relative; overflow:hidden;
+}
+
+.theme-info {
+  padding:16px 18px;
+}
+
+.theme-name {
+  font-size:14px; font-weight:700;
+  color:var(--text-1); margin-bottom:4px;
+}
+
+.theme-desc-sm {
+  font-size:12px; color:var(--text-3);
+  font-family:var(--f-mono);
+}
+
+/* Theme preview renderings */
+.tp-cyberpunk { background:#06060a; }
+.tp-cyberpunk .tp-bar { background:#0d0d1a; border-bottom:1px solid rgba(129,140,248,0.2); }
+.tp-cyberpunk .tp-key { background:#13132e; border:1px solid rgba(99,102,241,0.3); border-radius:4px; }
+.tp-cyberpunk .tp-key.active { border-color:#818cf8; box-shadow:0 0 10px rgba(129,140,248,0.5); }
+
+.tp-neon { background:#030305; }
+.tp-neon .tp-bar { background:#08080f; border-bottom:1px solid rgba(0,255,170,0.2); }
+.tp-neon .tp-key { background:#0c0c18; border:1px solid rgba(0,255,170,0.2); border-radius:4px; }
+.tp-neon .tp-key.active { border-color:#00ffaa; box-shadow:0 0 12px rgba(0,255,170,0.6); }
+
+.tp-dark { background:#0e0e10; }
+.tp-dark .tp-bar { background:#161618; border-bottom:1px solid rgba(255,255,255,0.06); }
+.tp-dark .tp-key { background:#1e1e22; border:1px solid rgba(255,255,255,0.1); border-radius:4px; }
+.tp-dark .tp-key.active { border-color:#e4e4e7; box-shadow:0 0 8px rgba(228,228,231,0.3); }
+
+.tp-light { background:#f5f5f7; }
+.tp-light .tp-bar { background:#ffffff; border-bottom:1px solid rgba(0,0,0,0.08); }
+.tp-light .tp-key { background:#ffffff; border:1px solid rgba(0,0,0,0.12); border-radius:4px; }
+.tp-light .tp-key.active { border-color:#6366f1; box-shadow:0 0 8px rgba(99,102,241,0.3); }
+
+/* Mini keyboard in theme preview */
+.tp-bar {
+  height:28px; display:flex; align-items:center;
+  padding:0 10px; gap:5px;
+}
+.tp-dot { width:7px; height:7px; border-radius:50%; }
+
+.tp-keyboard-area {
+  padding:12px 14px;
+  display:flex; flex-direction:column; gap:4px;
+}
+.tp-row { display:flex; gap:3px; }
+.tp-key { height:18px; flex:1; transition:all 0.2s; }
+.tp-key.w2 { flex:2; }
+.tp-key.w3 { flex:3; }
+
+/* ── HOW IT WORKS ───────────────────────────────────────────── */
+.how-section {
+  padding:120px 0;
+  background:var(--deep);
+}
+
+.steps {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:0;
+  position:relative;
+}
+
+.steps::before {
+  content:'';
+  position:absolute;
+  top:36px; left:10%; right:10%; height:1px;
+  background:linear-gradient(90deg, transparent, var(--border-2), var(--cyan), var(--border-2), transparent);
+}
+
+.step {
+  display:flex; flex-direction:column; align-items:center;
+  text-align:center; padding:0 20px;
+  position:relative;
+}
+
+.step-num {
+  width:72px; height:72px;
+  border-radius:50%;
+  background:var(--panel);
+  border:1px solid var(--border-2);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--f-display);
+  font-size:22px; font-weight:800;
+  color:var(--cyan);
+  margin-bottom:24px;
+  position:relative; z-index:1;
+  box-shadow:0 0 20px var(--cyan-glow), 0 0 60px rgba(0,212,255,0.05);
+  transition:all 0.3s;
+}
+
+.step:hover .step-num {
+  box-shadow:0 0 30px var(--cyan-glow), 0 0 80px rgba(0,212,255,0.1);
+  transform:scale(1.1);
+  background:var(--cyan-sub);
+}
+
+.step-icon { font-size:26px; }
+
+.step-title {
+  font-size:16px; font-weight:700;
+  color:var(--text-1); margin-bottom:10px;
+}
+
+.step-desc {
+  font-size:13px; line-height:1.7;
+  color:var(--text-2);
+}
+
+/* ── DOWNLOAD SECTION ───────────────────────────────────────── */
+.download-section {
+  padding:140px 0;
+  position:relative; overflow:hidden;
+}
+
+.download-section::before {
+  content:'';
+  position:absolute; inset:0;
+  background:
+    radial-gradient(ellipse 60% 60% at 50% 0%, rgba(0,212,255,0.08) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 80% 100%, rgba(124,58,237,0.06) 0%, transparent 60%);
+}
+
+.download-inner {
+  text-align:center; position:relative; z-index:1;
+}
+
+.download-title {
+  font-family:var(--f-display);
+  font-size:clamp(36px,5vw,64px);
+  font-weight:900; line-height:1.05;
+  margin-bottom:20px;
+}
+
+.download-sub {
+  font-size:18px; color:var(--text-2);
+  max-width:480px; margin:0 auto 52px;
+  line-height:1.7;
+}
+
+.download-buttons {
+  display:flex; align-items:center;
+  justify-content:center; gap:14px;
+  flex-wrap:wrap; margin-bottom:40px;
+}
+
+.dl-btn {
+  display:flex; align-items:center; gap:12px;
+  padding:14px 24px;
+  border-radius:10px; text-decoration:none;
+  transition:all 0.25s var(--ease-out);
+  font-weight:600; font-size:14px;
+  letter-spacing:0.02em;
+  min-width:180px;
+}
+.dl-btn-icon { font-size:22px; }
+.dl-btn-info { text-align:left; }
+.dl-btn-sub { font-size:10px; font-family:var(--f-mono); opacity:0.7; display:block; }
+
+.dl-win {
+  background:linear-gradient(135deg, #0078D4, #005a9e);
+  color:#fff;
+  box-shadow:0 8px 32px rgba(0,120,212,0.3);
+}
+.dl-win:hover { transform:translateY(-3px); box-shadow:0 16px 48px rgba(0,120,212,0.4); }
+
+.dl-mac {
+  background:linear-gradient(135deg, #2a2a2a, #1a1a1a);
+  color:#fff;
+  border:1px solid rgba(255,255,255,0.1);
+  box-shadow:0 8px 32px rgba(0,0,0,0.4);
+}
+.dl-mac:hover { transform:translateY(-3px); background:linear-gradient(135deg,#333,#222); }
+
+.dl-linux {
+  background:transparent;
+  color:var(--text-1);
+  border:1px solid var(--border-2);
+}
+.dl-linux:hover { background:var(--cyan-sub); border-color:var(--border-3); transform:translateY(-3px); }
+
+.download-note {
+  font-size:12px; color:var(--text-3);
+  font-family:var(--f-mono);
+  letter-spacing:0.06em;
+}
+
+/* ── FOOTER ─────────────────────────────────────────────────── */
+footer {
+  position:relative; z-index:1;
+  border-top:1px solid var(--border-1);
+  background:var(--deep);
+  padding:64px 0 40px;
+}
+
+.footer-inner {
+  max-width:1200px; margin:0 auto;
+  padding:0 48px;
+}
+
+.footer-top {
+  display:grid;
+  grid-template-columns:1.5fr 1fr 1fr 1fr;
+  gap:48px;
+  margin-bottom:64px;
+}
+
+.footer-brand p {
+  font-size:14px; color:var(--text-3);
+  line-height:1.8; margin-top:12px;
+  max-width:260px;
+}
+
+.footer-col-title {
+  font-family:var(--f-mono);
+  font-size:10px; letter-spacing:0.15em;
+  text-transform:uppercase; color:var(--text-3);
+  margin-bottom:16px;
+}
+
+.footer-links { list-style:none; }
+.footer-links li { margin-bottom:10px; }
+.footer-links a {
+  color:var(--text-2); text-decoration:none;
+  font-size:14px; transition:color 0.2s;
+}
+.footer-links a:hover { color:var(--cyan); }
+
+.footer-bottom {
+  display:flex; align-items:center; justify-content:space-between;
+  padding-top:32px;
+  border-top:1px solid var(--border-1);
+  font-size:12px; color:var(--text-3);
+  font-family:var(--f-mono);
+}
+
+.footer-badges {
+  display:flex; gap:8px;
+}
+.badge {
+  padding:3px 10px;
+  background:var(--panel);
+  border:1px solid var(--border-1);
+  border-radius:100px;
+  font-size:10px; color:var(--text-3);
+  letter-spacing:0.05em;
+}
+
+/* ── ANIMATIONS ─────────────────────────────────────────────── */
+@keyframes fade-up {
+  from { opacity:0; transform:translateY(24px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity:0; }
+  to   { opacity:1; }
+}
+
+/* Scroll-triggered reveal */
+.reveal {
+  opacity:0; transform:translateY(32px);
+  transition:opacity 0.7s var(--ease-out), transform 0.7s var(--ease-out);
+}
+.reveal.visible {
+  opacity:1; transform:translateY(0);
+}
+.reveal-delay-1 { transition-delay:0.1s; }
+.reveal-delay-2 { transition-delay:0.2s; }
+.reveal-delay-3 { transition-delay:0.3s; }
+.reveal-delay-4 { transition-delay:0.4s; }
+
+/* Glitch text effect */
+.glitch {
+  position:relative;
+}
+.glitch::before,
+.glitch::after {
+  content:attr(data-text);
+  position:absolute; top:0; left:0; width:100%;
+  font-family:inherit; font-size:inherit;
+  font-weight:inherit; line-height:inherit;
+}
+.glitch::before {
+  left:2px; text-shadow:-2px 0 var(--pink);
+  clip:rect(44px, 450px, 56px, 0);
+  animation:glitch1 8s infinite linear alternate-reverse;
+}
+.glitch::after {
+  left:-2px; text-shadow:2px 0 var(--cyan);
+  clip:rect(44px, 450px, 56px, 0);
+  animation:glitch2 8s infinite linear alternate-reverse;
+}
+@keyframes glitch1 {
+  0%,90%   { clip:rect(800px,9999px,900px,0); transform:skew(0deg); }
+  92%      { clip:rect(30px,9999px,50px,0); transform:skew(0.3deg); }
+  94%      { clip:rect(70px,9999px,90px,0); transform:skew(-0.2deg); }
+  96%      { clip:rect(10px,9999px,20px,0); transform:skew(0.5deg); }
+  98%,100% { clip:rect(800px,9999px,900px,0); transform:skew(0deg); }
+}
+@keyframes glitch2 {
+  0%,88%   { clip:rect(800px,9999px,900px,0); transform:skew(0deg); }
+  90%      { clip:rect(50px,9999px,65px,0); transform:skew(-0.3deg); }
+  92%      { clip:rect(15px,9999px,30px,0); transform:skew(0.2deg); }
+  94%,100% { clip:rect(800px,9999px,900px,0); transform:skew(0deg); }
+}
+
+/* Terminal cursor */
+.cursor {
+  display:inline-block;
+  width:2px; height:1em;
+  background:var(--cyan);
+  margin-left:4px;
+  vertical-align:text-bottom;
+  animation:cursor-blink 1s step-end infinite;
+}
+@keyframes cursor-blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ── RESPONSIVE ─────────────────────────────────────────────── */
+@media (max-width:900px) {
+  nav { padding:0 24px; }
+  .nav-links { display:none; }
+  .section-inner { padding:0 24px; }
+  .features-grid { grid-template-columns:1fr 1fr; }
+  .feature-card.wide { grid-column:span 1; }
+  .themes-showcase { grid-template-columns:1fr 1fr; }
+  .steps { grid-template-columns:1fr 1fr; gap:40px; }
+  .steps::before { display:none; }
+  .footer-top { grid-template-columns:1fr 1fr; gap:32px; }
+  .footer-bottom { flex-direction:column; gap:12px; text-align:center; }
+}
+@media (max-width:600px) {
+  .hero-title { font-size:36px; }
+  .features-grid { grid-template-columns:1fr; }
+  .themes-showcase { grid-template-columns:1fr; }
+  .steps { grid-template-columns:1fr; }
+  .stats-bar { flex-direction:column; }
+  .stat-item { border-right:none; border-bottom:1px solid var(--border-1); }
+  .footer-top { grid-template-columns:1fr; }
+  .download-buttons { flex-direction:column; align-items:center; }
+}
+</style>
+</head>
+<body>
+
+<!-- Background layers -->
+<div class="noise-overlay"></div>
+<div class="grid-bg"></div>
+<div class="scan-bg"></div>
+<canvas id="particle-canvas"></canvas>
+
+<!-- ══ NAV ══════════════════════════════════════════════════════ -->
+<nav id="navbar">
+  <a href="#" class="nav-brand">
+    <div class="nav-logo">⌨</div>
+    <span class="nav-name">KeyBind</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#themes">Themes</a></li>
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="https://github.com/Nathul/Key_Bind-Launcher" target="_blank">GitHub</a></li>
+    <li><a href="#download" class="nav-cta">⬇ Download Free</a></li>
+  </ul>
+</nav>
+
+<!-- ══ HERO ══════════════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-blob hero-blob-1"></div>
+  <div class="hero-blob hero-blob-2"></div>
+  <div class="hero-blob hero-blob-3"></div>
+
+  <div class="hero-eyebrow">
+    <div class="eyebrow-dot"></div>
+    v2.0 — Now with Theme Engine + AI Suggestions
+  </div>
+
+  <h1 class="hero-title">
+    <span class="line-1">Own Your</span>
+    <span class="line-2 glitch" data-text="Keyboard.">Keyboard.</span>
+  </h1>
+
+  <p class="hero-sub">
+    The premium shortcut launcher for power users. Assign any app or website to any key.
+    Visual keyboard UI, RGB themes, global shortcuts — runs silently in your tray.
+    <span class="cursor"></span>
+  </p>
+
+  <div class="hero-actions">
+    <a href="#download" class="btn-primary">
+      <span class="btn-icon">⬇</span>
+      Download Free
+    </a>
+    <a href="https://github.com/Nathul/Key_Bind-Launcher" class="btn-secondary" target="_blank">
+      <span>⭐</span>
+      Star on GitHub
+    </a>
+  </div>
+
+  <!-- Virtual keyboard mockup -->
+  <div class="keyboard-mockup">
+    <div style="position:relative;">
+      <div class="keyboard-rim"></div>
+      <div class="keyboard-shell">
+        <!-- Row 1: Fn -->
+        <div class="kb-row">
+          <div class="key fn">Esc</div>
+          <div class="key fn assigned cyan">F1<span class="key-dot"></span></div>
+          <div class="key fn">F2</div>
+          <div class="key fn">F3</div>
+          <div class="key fn assigned violet">F4<span class="key-dot" style="--kc:#a78bfa"></span></div>
+          <div class="key fn">F5</div>
+          <div class="key fn assigned pink">F6<span class="key-dot" style="--kc:#f472b6"></span></div>
+          <div class="key fn">F7</div>
+          <div class="key fn">F8</div>
+          <div class="key fn assigned green">F9<span class="key-dot" style="--kc:#10b981"></span></div>
+          <div class="key fn">F10</div>
+          <div class="key fn">F11</div>
+          <div class="key fn assigned amber">F12<span class="key-dot" style="--kc:#f59e0b"></span></div>
+        </div>
+        <!-- Row 2: Numbers -->
+        <div class="kb-row">
+          <div class="key">`</div>
+          <div class="key assigned cyan">1<span class="key-dot"></span></div>
+          <div class="key">2</div>
+          <div class="key">3</div>
+          <div class="key assigned violet">4<span class="key-dot" style="--kc:#a78bfa"></span></div>
+          <div class="key">5</div>
+          <div class="key">6</div>
+          <div class="key assigned pink">7<span class="key-dot" style="--kc:#f472b6"></span></div>
+          <div class="key">8</div>
+          <div class="key">9</div>
+          <div class="key">0</div>
+          <div class="key">-</div>
+          <div class="key">=</div>
+          <div class="key wide">⌫</div>
+        </div>
+        <!-- Row 3: QWERTY -->
+        <div class="kb-row">
+          <div class="key wide">Tab</div>
+          <div class="key assigned green">Q<span class="key-dot" style="--kc:#10b981"></span></div>
+          <div class="key">W</div>
+          <div class="key">E</div>
+          <div class="key assigned amber">R<span class="key-dot" style="--kc:#f59e0b"></span></div>
+          <div class="key">T</div>
+          <div class="key">Y</div>
+          <div class="key">U</div>
+          <div class="key">I</div>
+          <div class="key">O</div>
+          <div class="key">P</div>
+          <div class="key">[</div>
+          <div class="key">]</div>
+          <div class="key wide">\</div>
+        </div>
+        <!-- Row 4: Home -->
+        <div class="kb-row">
+          <div class="key cap">Caps</div>
+          <div class="key assigned cyan">A<span class="key-dot"></span></div>
+          <div class="key">S</div>
+          <div class="key">D</div>
+          <div class="key assigned violet">F<span class="key-dot" style="--kc:#a78bfa"></span></div>
+          <div class="key">G</div>
+          <div class="key">H</div>
+          <div class="key">J</div>
+          <div class="key">K</div>
+          <div class="key">L</div>
+          <div class="key">;</div>
+          <div class="key">'</div>
+          <div class="key enter">↵</div>
+        </div>
+        <!-- Row 5: Shift -->
+        <div class="kb-row">
+          <div class="key sleft">Shift</div>
+          <div class="key">Z</div>
+          <div class="key">X</div>
+          <div class="key assigned pink">C<span class="key-dot" style="--kc:#f472b6"></span></div>
+          <div class="key">V</div>
+          <div class="key">B</div>
+          <div class="key">N</div>
+          <div class="key">M</div>
+          <div class="key">,</div>
+          <div class="key">.</div>
+          <div class="key">/</div>
+          <div class="key sright">Shift</div>
+        </div>
+        <!-- Row 6: Bottom -->
+        <div class="kb-row">
+          <div class="key bkey">Ctrl</div>
+          <div class="key bkey">⌘</div>
+          <div class="key bkey">Alt</div>
+          <div class="key space">SPACE</div>
+          <div class="key bkey">Alt</div>
+          <div class="key bkey">⌘</div>
+          <div class="key bkey">☰</div>
+          <div class="key bkey">Ctrl</div>
+        </div>
+      </div>
+
+      <!-- Floating labels -->
+      <div class="key-label label-1" style="position:absolute; top:-20px; right:-20px;">🖥 VS Code + Terminal</div>
+      <div class="key-label label-2" style="position:absolute; top:20px; left:-100px;">🌐 Gmail + Notion</div>
+      <div class="key-label label-3" style="position:absolute; bottom:-20px; right:-30px;">🎵 Spotify + Discord</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ STATS ══════════════════════════════════════════════════════ -->
+<div class="stats-bar">
+  <div class="stat-item reveal">
+    <div class="stat-num" data-target="104">0</div>
+    <div class="stat-label">Keys Supported</div>
+  </div>
+  <div class="stat-item reveal reveal-delay-1">
+    <div class="stat-num" data-target="4">0</div>
+    <div class="stat-label">Built-in Themes</div>
+  </div>
+  <div class="stat-item reveal reveal-delay-2">
+    <div class="stat-num" data-target="3">0</div>
+    <div class="stat-label">Platforms</div>
+  </div>
+  <div class="stat-item reveal reveal-delay-3">
+    <div class="stat-num">∞</div>
+    <div class="stat-label">Shortcuts Possible</div>
+  </div>
+</div>
+
+<!-- ══ FEATURES ══════════════════════════════════════════════════ -->
+<section class="features" id="features">
+  <div class="section-inner">
+    <div class="section-head reveal">
+      <div class="section-eyebrow">// capabilities</div>
+      <h2 class="section-title">Everything you need.<br>Nothing you don't.</h2>
+      <p class="section-sub">Built for power users who demand precision, speed, and aesthetic control over their workflow.</p>
+    </div>
+
+    <div class="features-grid">
+      <!-- Card 1 - Wide -->
+      <div class="feature-card wide reveal" style="--fc:#00d4ff; --fc-glow:rgba(0,212,255,0.25)">
+        <div class="feature-icon">⌨</div>
+        <div class="feature-title">Visual Keyboard Interface</div>
+        <div class="feature-desc">
+          A full interactive QWERTY keyboard rendered in the app. Click any key to assign actions.
+          Modifier combos (Ctrl+Shift+Alt+anything), color-coded indicators, real-time glow feedback.
+          No command lines. No config files. Pure visual control.
+        </div>
+        <div class="feature-tags">
+          <span class="tag">QWERTY Layout</span>
+          <span class="tag">Modifier Combos</span>
+          <span class="tag">Visual Feedback</span>
+          <span class="tag">Glow Indicators</span>
+        </div>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="feature-card reveal reveal-delay-1" style="--fc:#a78bfa; --fc-glow:rgba(167,139,250,0.25)">
+        <div class="feature-icon" style="background:rgba(167,139,250,0.1); border-color:rgba(167,139,250,0.25); box-shadow:0 0 20px rgba(167,139,250,0.2);">🌍</div>
+        <div class="feature-title">Global Shortcuts</div>
+        <div class="feature-desc">
+          Shortcuts fire system-wide regardless of which app has focus. Works even when the window is hidden in the tray.
+        </div>
+        <div class="feature-tags">
+          <span class="tag">OS-Level Hook</span>
+          <span class="tag">Always Active</span>
+        </div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="feature-card reveal reveal-delay-1" style="--fc:#f472b6; --fc-glow:rgba(244,114,182,0.25)">
+        <div class="feature-icon" style="background:rgba(244,114,182,0.1); border-color:rgba(244,114,182,0.25); box-shadow:0 0 20px rgba(244,114,182,0.2);">🎨</div>
+        <div class="feature-title">RGB Theme Engine</div>
+        <div class="feature-desc">
+          4 built-in themes: Cyberpunk, Neon RGB, Minimal Dark, Minimal Light. Switch instantly with zero reload.
+        </div>
+        <div class="feature-tags">
+          <span class="tag">Real-time Switch</span>
+          <span class="tag">CSS Variables</span>
+        </div>
+      </div>
+
+      <!-- Card 4 -->
+      <div class="feature-card reveal" style="--fc:#10b981; --fc-glow:rgba(16,185,129,0.25)">
+        <div class="feature-icon" style="background:rgba(16,185,129,0.1); border-color:rgba(16,185,129,0.25); box-shadow:0 0 20px rgba(16,185,129,0.2);">👤</div>
+        <div class="feature-title">Profile System</div>
+        <div class="feature-desc">
+          Separate keybind sets for Work, Study, Gaming, or any custom profile. Switch instantly — shortcuts re-register in milliseconds.
+        </div>
+      </div>
+
+      <!-- Card 5 -->
+      <div class="feature-card reveal reveal-delay-1" style="--fc:#f59e0b; --fc-glow:rgba(245,158,11,0.25)">
+        <div class="feature-icon" style="background:rgba(245,158,11,0.1); border-color:rgba(245,158,11,0.25); box-shadow:0 0 20px rgba(245,158,11,0.2);">⚡</div>
+        <div class="feature-title">Multi-Action Keys</div>
+        <div class="feature-desc">
+          One key press launches multiple apps AND multiple websites simultaneously, with a configurable delay between each launch.
+        </div>
+      </div>
+
+      <!-- Card 6 -->
+      <div class="feature-card reveal reveal-delay-2" style="--fc:#00d4ff; --fc-glow:rgba(0,212,255,0.25)">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">Live Dashboard</div>
+        <div class="feature-desc">
+          Stat cards, recent trigger history with timestamps, and a quick-launch grid of your most-used shortcuts.
+        </div>
+      </div>
+
+      <!-- Card 7 -->
+      <div class="feature-card reveal" style="--fc:#a78bfa; --fc-glow:rgba(167,139,250,0.25)">
+        <div class="feature-icon" style="background:rgba(167,139,250,0.1); border-color:rgba(167,139,250,0.25); box-shadow:0 0 20px rgba(167,139,250,0.2);">⊟</div>
+        <div class="feature-title">System Tray</div>
+        <div class="feature-desc">
+          Runs silently in background. Launches at system startup. Never interrupts your workflow.
+        </div>
+      </div>
+
+      <!-- Card 8 -->
+      <div class="feature-card reveal reveal-delay-1" style="--fc:#10b981; --fc-glow:rgba(16,185,129,0.25)">
+        <div class="feature-icon" style="background:rgba(16,185,129,0.1); border-color:rgba(16,185,129,0.25); box-shadow:0 0 20px rgba(16,185,129,0.2);">📦</div>
+        <div class="feature-title">Import / Export</div>
+        <div class="feature-desc">
+          Portable JSON configs. Share your setup with teammates. Backup before reinstalls. One-click restore.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ THEMES ══════════════════════════════════════════════════════ -->
+<section class="themes-section" id="themes">
+  <div class="section-inner">
+    <div class="section-head reveal">
+      <div class="section-eyebrow">// appearance</div>
+      <h2 class="section-title">Four themes.<br>One vibe for every mode.</h2>
+      <p class="section-sub">Switch themes in real-time with zero reload. CSS-variable powered — instant, smooth, flicker-free.</p>
+    </div>
+
+    <div class="themes-showcase">
+      <!-- Cyberpunk -->
+      <div class="theme-card reveal">
+        <div class="theme-preview-large tp-cyberpunk">
+          <div class="tp-bar">
+            <div class="tp-dot" style="background:#ff5f57"></div>
+            <div class="tp-dot" style="background:#febc2e"></div>
+            <div class="tp-dot" style="background:#28c840"></div>
+          </div>
+          <div class="tp-keyboard-area">
+            <div class="tp-row">
+              <div class="tp-key tp-cyberpunk-key"></div>
+              <div class="tp-key tp-cyberpunk-key active" style="border-color:#818cf8; box-shadow:0 0 10px rgba(129,140,248,0.6); background:#13132e;"></div>
+              <div class="tp-key tp-cyberpunk-key"></div>
+              <div class="tp-key tp-cyberpunk-key"></div>
+            </div>
+            <div class="tp-row">
+              <div class="tp-key tp-cyberpunk-key w2"></div>
+              <div class="tp-key tp-cyberpunk-key active" style="border-color:#f472b6; box-shadow:0 0 10px rgba(244,114,182,0.5); background:#1a0f1a;"></div>
+              <div class="tp-key tp-cyberpunk-key"></div>
+            </div>
+            <div class="tp-row">
+              <div class="tp-key tp-cyberpunk-key"></div>
+              <div class="tp-key tp-cyberpunk-key w3" style="background:#0d0d1a;"></div>
+              <div class="tp-key tp-cyberpunk-key"></div>
+            </div>
+          </div>
+          <div style="padding:0 14px 12px; font-family:var(--f-mono); font-size:10px; color:#818cf8; letter-spacing:0.1em;">CYBERPUNK TERMINAL</div>
+        </div>
+        <div class="theme-info" style="background:#0a0a18; border-top:1px solid rgba(129,140,248,0.15);">
+          <div class="theme-name">Cyberpunk</div>
+          <div class="theme-desc-sm" style="color:#4a5278;">Deep indigo · electric violet glow · grid lines</div>
+        </div>
+      </div>
+
+      <!-- Neon -->
+      <div class="theme-card reveal reveal-delay-1">
+        <div class="theme-preview-large tp-neon">
+          <div class="tp-bar">
+            <div class="tp-dot" style="background:#ff5f57"></div>
+            <div class="tp-dot" style="background:#febc2e"></div>
+            <div class="tp-dot" style="background:#28c840"></div>
+          </div>
+          <div class="tp-keyboard-area">
+            <div class="tp-row">
+              <div class="tp-key" style="background:#0c0c18; border:1px solid rgba(0,255,170,0.2); border-radius:4px;"></div>
+              <div class="tp-key" style="background:#0c0c18; border:1px solid #00ffaa; border-radius:4px; box-shadow:0 0 12px rgba(0,255,170,0.6);"></div>
+              <div class="tp-key" style="background:#0c0c18; border:1px solid rgba(0,255,170,0.2); border-radius:4px;"></div>
+              <div class="tp-key" style="background:#0c0c18; border:1px solid rgba(0,255,170,0.2); border-radius:4px;"></div>
+            </div>
+            <div class="tp-row">
+              <div class="tp-key w2" style="background:#0c0c18; border:1px solid rgba(0,255,170,0.2); border-radius:4px;"></div>
+              <div class="tp-key" style="background:#0a1a10; border:1px solid #ff006e; border-radius:4px; box-shadow:0 0 12px rgba(255,0,110,0.5);"></div>
+              <div class="tp-key" style="background:#0c0c18; border:1px solid rgba(0,255,170,0.2); border-radius:4px;"></div>
+            </div>
+            <div class="tp-row">
+              <div class="tp-key" style="background:#0c0c18; border:1px solid rgba(0,255,170,0.2); border-radius:4px;"></div>
+              <div class="tp-key w3" style="background:#0c0c18; border:1px solid rgba(0,255,170,0.15); border-radius:4px;"></div>
+              <div class="tp-key" style="background:#0c0c18; border:1px solid rgba(0,255,170,0.2); border-radius:4px;"></div>
+            </div>
+          </div>
+          <div style="padding:0 14px 12px; font-family:var(--f-mono); font-size:10px; color:#00ffaa; letter-spacing:0.1em;">NEON RGB</div>
+        </div>
+        <div class="theme-info" style="background:#08080f; border-top:1px solid rgba(0,255,170,0.1);">
+          <div class="theme-name" style="color:#d4fff2;">Neon RGB</div>
+          <div class="theme-desc-sm" style="color:#2d6b55;">Pitch black · neon green glow · ultra-bright</div>
+        </div>
+      </div>
+
+      <!-- Minimal Dark -->
+      <div class="theme-card reveal reveal-delay-2">
+        <div class="theme-preview-large tp-dark">
+          <div class="tp-bar">
+            <div class="tp-dot" style="background:#ff5f57"></div>
+            <div class="tp-dot" style="background:#febc2e"></div>
+            <div class="tp-dot" style="background:#28c840"></div>
+          </div>
+          <div class="tp-keyboard-area">
+            <div class="tp-row">
+              <div class="tp-key" style="background:#1e1e22; border:1px solid rgba(255,255,255,0.08); border-radius:4px;"></div>
+              <div class="tp-key" style="background:#1e1e22; border:1px solid rgba(255,255,255,0.28); border-radius:4px; box-shadow:0 0 8px rgba(228,228,231,0.2);"></div>
+              <div class="tp-key" style="background:#1e1e22; border:1px solid rgba(255,255,255,0.08); border-radius:4px;"></div>
+              <div class="tp-key" style="background:#1e1e22; border:1px solid rgba(255,255,255,0.08); border-radius:4px;"></div>
+            </div>
+            <div class="tp-row">
+              <div class="tp-key w2" style="background:#1e1e22; border:1px solid rgba(255,255,255,0.08); border-radius:4px;"></div>
+              <div class="tp-key" style="background:#1e1e22; border:1px solid rgba(255,255,255,0.3); border-radius:4px;"></div>
+              <div class="tp-key" style="background:#1e1e22; border:1px solid rgba(255,255,255,0.08); border-radius:4px;"></div>
+            </div>
+            <div class="tp-row">
+              <div class="tp-key" style="background:#1e1e22; border:1px solid rgba(255,255,255,0.08); border-radius:4px;"></div>
+              <div class="tp-key w3" style="background:#222226; border:1px solid rgba(255,255,255,0.06); border-radius:4px;"></div>
+              <div class="tp-key" style="background:#1e1e22; border:1px solid rgba(255,255,255,0.08); border-radius:4px;"></div>
+            </div>
+          </div>
+          <div style="padding:0 14px 12px; font-family:var(--f-mono); font-size:10px; color:#52525b; letter-spacing:0.1em;">MINIMAL DARK</div>
+        </div>
+        <div class="theme-info" style="background:#161618; border-top:1px solid rgba(255,255,255,0.05);">
+          <div class="theme-name">Minimal Dark</div>
+          <div class="theme-desc-sm" style="color:#52525b;">Clean · refined · monochromatic</div>
+        </div>
+      </div>
+
+      <!-- Minimal Light -->
+      <div class="theme-card reveal reveal-delay-3">
+        <div class="theme-preview-large" style="background:#f5f5f7;">
+          <div class="tp-bar" style="background:#ffffff; border-bottom:1px solid rgba(0,0,0,0.06);">
+            <div class="tp-dot" style="background:#ff5f57"></div>
+            <div class="tp-dot" style="background:#febc2e"></div>
+            <div class="tp-dot" style="background:#28c840"></div>
+          </div>
+          <div class="tp-keyboard-area">
+            <div class="tp-row">
+              <div class="tp-key" style="background:#fff; border:1px solid rgba(0,0,0,0.1); border-radius:4px; box-shadow:0 2px 4px rgba(0,0,0,0.06);"></div>
+              <div class="tp-key" style="background:#fff; border:1px solid #6366f1; border-radius:4px; box-shadow:0 0 10px rgba(99,102,241,0.25);"></div>
+              <div class="tp-key" style="background:#fff; border:1px solid rgba(0,0,0,0.1); border-radius:4px; box-shadow:0 2px 4px rgba(0,0,0,0.06);"></div>
+              <div class="tp-key" style="background:#fff; border:1px solid rgba(0,0,0,0.1); border-radius:4px; box-shadow:0 2px 4px rgba(0,0,0,0.06);"></div>
+            </div>
+            <div class="tp-row">
+              <div class="tp-key w2" style="background:#fff; border:1px solid rgba(0,0,0,0.1); border-radius:4px;"></div>
+              <div class="tp-key" style="background:#fff; border:1px solid #6366f1; border-radius:4px; box-shadow:0 0 8px rgba(99,102,241,0.2);"></div>
+              <div class="tp-key" style="background:#fff; border:1px solid rgba(0,0,0,0.1); border-radius:4px;"></div>
+            </div>
+            <div class="tp-row">
+              <div class="tp-key" style="background:#fff; border:1px solid rgba(0,0,0,0.1); border-radius:4px;"></div>
+              <div class="tp-key w3" style="background:#f8f8fa; border:1px solid rgba(0,0,0,0.08); border-radius:4px;"></div>
+              <div class="tp-key" style="background:#fff; border:1px solid rgba(0,0,0,0.1); border-radius:4px;"></div>
+            </div>
+          </div>
+          <div style="padding:0 14px 12px; font-family:var(--f-mono); font-size:10px; color:#a1a1aa; letter-spacing:0.1em;">MINIMAL LIGHT</div>
+        </div>
+        <div class="theme-info" style="background:#ffffff; border-top:1px solid rgba(0,0,0,0.06);">
+          <div class="theme-name" style="color:#18181b;">Minimal Light</div>
+          <div class="theme-desc-sm" style="color:#a1a1aa;">Paper white · ink black · editorial</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ HOW IT WORKS ════════════════════════════════════════════════ -->
+<section class="how-section" id="how">
+  <div class="section-inner">
+    <div class="section-head reveal">
+      <div class="section-eyebrow">// workflow</div>
+      <h2 class="section-title">Up and running in<br>under 60 seconds.</h2>
+      <p class="section-sub">No configuration files. No command line. Just click, assign, and go.</p>
+    </div>
+
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-num"><span class="step-icon">⬇</span></div>
+        <div class="step-title">Download & Install</div>
+        <div class="step-desc">One-click installer for Windows, Mac, or Linux. No dependencies. No admin rights needed.</div>
+      </div>
+      <div class="step reveal reveal-delay-1">
+        <div class="step-num"><span class="step-icon">⌨</span></div>
+        <div class="step-title">Click a Key</div>
+        <div class="step-desc">The visual keyboard shows on launch. Click any key — the config panel slides in instantly.</div>
+      </div>
+      <div class="step reveal reveal-delay-2">
+        <div class="step-num"><span class="step-icon">➕</span></div>
+        <div class="step-title">Add Actions</div>
+        <div class="step-desc">Browse for apps. Paste URLs. Set a delay. Pick a color. Click Save — the key glows live.</div>
+      </div>
+      <div class="step reveal reveal-delay-3">
+        <div class="step-num"><span class="step-icon">🚀</span></div>
+        <div class="step-title">Press & Launch</div>
+        <div class="step-desc">Your shortcut works globally, instantly, forever — even when the app is hidden in the tray.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ DOWNLOAD ════════════════════════════════════════════════════ -->
+<section class="download-section" id="download">
+  <div class="section-inner">
+    <div class="download-inner reveal">
+      <div class="section-eyebrow">// download</div>
+      <h2 class="download-title">
+        Free.<br>
+        <span style="background:linear-gradient(135deg,var(--cyan),var(--violet-b));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+          Forever.
+        </span>
+      </h2>
+      <p class="download-sub">
+        Open source. No account. No subscription. No ads.
+        Your config stays on your machine.
+      </p>
+
+      <div class="download-buttons">
+        <a href="https://github.com/Nathul/Key_Bind-Launcher/releases/download/v2.0.0/KeyBind-Launcher-Setup.exe" class="dl-btn dl-win">
+          <span class="dl-btn-icon">🪟</span>
+          <div class="dl-btn-info">
+            <span class="dl-btn-sub">DOWNLOAD FOR</span>
+            Windows
+          </div>
+        </a>
+        <a href="https://github.com/yourusername/keybind-launcher/releases/latest/download/KeyBind-Launcher.dmg" class="dl-btn dl-mac">
+          <span class="dl-btn-icon">🍎</span>
+          <div class="dl-btn-info">
+            <span class="dl-btn-sub">DOWNLOAD FOR</span>
+            macOS
+          </div>
+        </a>
+        <a href="https://github.com/yourusername/keybind-launcher/releases/latest/download/KeyBind-Launcher.AppImage" class="dl-btn dl-linux">
+          <span class="dl-btn-icon">🐧</span>
+          <div class="dl-btn-info">
+            <span class="dl-btn-sub">DOWNLOAD FOR</span>
+            Linux
+          </div>
+        </a>
+      </div>
+
+      <p class="download-note">
+        v2.0.0 · MIT License · Electron 28 · ~85MB · No tracking
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FOOTER ══════════════════════════════════════════════════════ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a href="#" class="nav-brand" style="text-decoration:none;">
+          <div class="nav-logo" style="width:32px;height:32px;font-size:16px;">⌨</div>
+          <span class="nav-name">KeyBind Launcher</span>
+        </a>
+        <p>A premium cross-platform shortcut launcher built with Electron and React. Own your keyboard.</p>
+      </div>
+
+      <div>
+        <div class="footer-col-title">Product</div>
+        <ul class="footer-links">
+          <li><a href="#features">Features</a></li>
+          <li><a href="#themes">Themes</a></li>
+          <li><a href="#how">How It Works</a></li>
+          <li><a href="#download">Download</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <div class="footer-col-title">Developers</div>
+        <ul class="footer-links">
+          <li><a href="https://github.com/Nathul/Key_Bind-Launcher" target="_blank">GitHub</a></li>
+          <li><a href="https://github.com/Nathul/Key_Bind-Launcher/releases" target="_blank">Releases</a></li>
+          <li><a href="https://github.com/Nathul/Key_Bind-Launcher/issues/new" target="_blank">Report a Bug</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <div class="footer-col-title">Stack</div>
+        <ul class="footer-links">
+          <li><a href="#">Electron 28</a></li>
+          <li><a href="#">React 18</a></li>
+          <li><a href="#">CSS Variables</a></li>
+          <li><a href="#">MIT License</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>© 2025 KeyBind Launcher — Open Source</span>
+      <div class="footer-badges">
+        <span class="badge">MIT</span>
+        <span class="badge">Open Source</span>
+        <span class="badge">No Telemetry</span>
+        <span class="badge">No Ads</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ── Navbar scroll effect ─────────────────────────────────────
+const navbar = document.getElementById('navbar');
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 40);
+}, { passive: true });
+
+// ── Scroll reveal ────────────────────────────────────────────
+const revealEls = document.querySelectorAll('.reveal');
+const revealObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      revealObs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+revealEls.forEach(el => revealObs.observe(el));
+
+// ── Animated counters ────────────────────────────────────────
+const counterEls = document.querySelectorAll('[data-target]');
+const counterObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    const el     = e.target;
+    const target = +el.dataset.target;
+    const dur    = 1400;
+    const start  = performance.now();
+    function tick(now) {
+      const p = Math.min((now - start) / dur, 1);
+      const ease = 1 - Math.pow(1 - p, 4);
+      el.textContent = Math.round(ease * target);
+      if (p < 1) requestAnimationFrame(tick);
+      else el.textContent = target;
+    }
+    requestAnimationFrame(tick);
+    counterObs.unobserve(el);
+  });
+}, { threshold: 0.5 });
+counterEls.forEach(el => counterObs.observe(el));
+
+// ── Particle system ──────────────────────────────────────────
+const canvas = document.getElementById('particle-canvas');
+const ctx    = canvas.getContext('2d');
+let W, H, particles = [];
+
+function resize() {
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize, { passive: true });
+
+const COLORS = ['#00d4ff','#a78bfa','#f472b6','#10b981'];
+
+class Particle {
+  constructor() { this.reset(true); }
+  reset(init = false) {
+    this.x   = Math.random() * W;
+    this.y   = init ? Math.random() * H : H + 10;
+    this.vx  = (Math.random() - 0.5) * 0.3;
+    this.vy  = -(Math.random() * 0.4 + 0.1);
+    this.r   = Math.random() * 1.5 + 0.5;
+    this.a   = 0;
+    this.maxA= Math.random() * 0.5 + 0.1;
+    this.life= 0;
+    this.maxLife = Math.random() * 400 + 200;
+    this.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.life++;
+    const t = this.life / this.maxLife;
+    this.a  = this.maxA * Math.sin(t * Math.PI);
+    if (this.life >= this.maxLife) this.reset();
+  }
+  draw() {
+    ctx.save();
+    ctx.globalAlpha = this.a;
+    ctx.fillStyle   = this.color;
+    ctx.shadowColor = this.color;
+    ctx.shadowBlur  = 6;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+for (let i = 0; i < 80; i++) particles.push(new Particle());
+
+function animateParticles() {
+  ctx.clearRect(0, 0, W, H);
+  particles.forEach(p => { p.update(); p.draw(); });
+  requestAnimationFrame(animateParticles);
+}
+animateParticles();
+
+// ── Keyboard key ripple effect ────────────────────────────────
+document.querySelectorAll('.key').forEach(key => {
+  key.addEventListener('click', function(e) {
+    const r = document.createElement('span');
+    r.style.cssText = `
+      position:absolute; border-radius:50%;
+      width:60px; height:60px;
+      background:rgba(0,212,255,0.25);
+      transform:scale(0);
+      animation:rippleKey 0.5s ease-out forwards;
+      top:${e.offsetY - 30}px;
+      left:${e.offsetX - 30}px;
+      pointer-events:none;
+    `;
+    this.appendChild(r);
+    setTimeout(() => r.remove(), 500);
+  });
+});
+
+// Add ripple keyframe
+const rippleStyle = document.createElement('style');
+rippleStyle.textContent = `
+  @keyframes rippleKey {
+    to { transform:scale(3); opacity:0; }
+  }
+`;
+document.head.appendChild(rippleStyle);
+
+// ── Smooth anchor scrolling ───────────────────────────────────
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const target = document.querySelector(a.getAttribute('href'));
+    if (!target) return;
+    e.preventDefault();
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+
+// ── Dynamic year in footer ────────────────────────────────────
+document.querySelectorAll('.footer-bottom span').forEach(el => {
+  el.textContent = el.textContent.replace('2025', new Date().getFullYear());
+});
+</script>
+</body>
+</html>
